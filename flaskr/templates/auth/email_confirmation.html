@@ -1,0 +1,16 @@
+<!-- setting block title within block header lets you write the name of the page just once -->
+{% extends 'base.html' %}
+{% block header %}
+  <h1>{% block title %}Email Confirmation Sent{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <h1>We sent a confirmation message to your email.</h1>
+  <p>To complete registration, please click on the enclosed link.
+      <br><br>
+      Didn't receive an email? <a class="action" href="{{ url_for('static', filename='main.js') }}">Send another link.</a>
+  </p>
+  <br><br>
+  <h2>Welcome to AltTravelers!</h2>
+  <a class="action" href="{{ url_for('auth.login')}}">Already confirmed? Login here.</a>
+{% endblock %}
