@@ -1,0 +1,87 @@
+<!-- request.form['title'] or post['title']: when form hasn't been submitted, the original post data appears
+but if invalid form data was posted, you want to display this so the user can fix the error, so request.form is used -->
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}AltTravelers{% endblock %}</h1>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css"
+  integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+  crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"
+  integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA=="
+  crossorigin=""></script>
+
+  <meta name="viewport" content="initial-scale=1.0">
+  <meta charset="utf-8">
+  <style>
+    /* Always set the map height explicitly to define the size of the div
+     * element that contains the map. */
+    #mapid {
+      height: 500px;
+      overflow:visible;
+    }
+    /* Optional: Makes the sample page fill the window. */
+  </style>
+{% endblock %}
+
+{% block content %}
+    <div id='mapid'>Welcome to the jungle</div>
+    <script>
+        var mymap = L.map('mapid').setView([51.505, -0.09], 13);
+
+        // add a tile layer to the map (this one is from openstreetmap) by invoking a URL template with attribution
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(mymap);
+
+        // add a marker to the map at specified long/lat
+        // bindPopup attaches a popup with specified HTML content (click)
+        // openPopup immediately opens popup
+        // L.marker([51.5, -0.09]).addTo(mymap)
+        //     .bindPopup('A pretty CSS3 popup.<br> Easily customizable.')
+        //     .openPopup();
+
+        var circle = L.circle([51.508, -0.11], {
+        color: 'red',
+        fillColor: '#f03',
+        fillOpacity: 0.5,
+        radius: 500
+        }).addTo(mymap).bindPopup('check out my new circle');
+
+        var markerDict = {};   // TODO: do I need this array now?
+        var globalMarketId = 0;
+        var markerGroup = L.layerGroup().addTo(mymap);    // add all markers of the same vacation to this group
+
+        function createMarkerOnMapClick(e) {
+            var markerAtLoc = new L.Marker(e.latlng, {draggable:true}).addTo(markerGroup);
+
+            // TODO: check if latlng already exists
+            // TODO: hash the latlng key
+            markerDict[markerAtLoc.getLatLng]=updateMarkerCount()
+            markerAtLoc
+                .bindPopup("<b>Marker set at:<br>"+e.latlng+"<br><input type='button'value='Delete this marker' class='marker-delete-button'/>")
+                .on("popupopen", deleteMarkerOnPopUpButtonPress);
+                // .bindPopup("<b>Marker set at:<br>"+e.latlng)
+                // .on('click', deleteMarkerOnPopUpButtonPress(markerDict.length-1));
+            console.log(Object.values(markerDict));
+        }
+
+        function updateMarkerCount() {
+            ++globalMarketId;
+            return globalMarketId;
+        }
+
+        function deleteMarkerOnPopUpButtonPress() {
+            // TODO: check value of index against length of markerDict
+            var marker = this;
+            var latlng = marker.getLatLng;
+            $(".marker-delete-button:visible").click(function() {
+                markerGroup.removeLayer(marker);
+                delete markerDict[latlng];
+            });
+            console.log(Object.values(markerDict));
+        }
+
+        mymap.on('click', createMarkerOnMapClick);
+    </script>
+{% endblock %}

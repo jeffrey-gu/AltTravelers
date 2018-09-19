@@ -61,6 +61,10 @@ def create_app(test_config=None):
 	# url_for('index') and url_for('blog.index') point to the same url
 	app.add_url_rule('/', endpoint='index')
 
+	from . import geomap
+	app.register_blueprint(geomap.bp)
+	app.add_url_rule('/', endpoint='index')
+
 	return app
 
 def connect_db():
