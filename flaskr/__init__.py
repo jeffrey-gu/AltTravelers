@@ -55,15 +55,15 @@ def create_app(test_config=None):
 
 	# unlike the auth blueprint, blog does not have url_prefix
 	# index view will be at /, the create view at /create, etc.
-	from . import blog
-	app.register_blueprint(blog.bp)
-	# associates the endpoint name 'index' with the / url so that
-	# url_for('index') and url_for('blog.index') point to the same url
-	app.add_url_rule('/', endpoint='index')
+	# from . import blog
+	# app.register_blueprint(blog.bp)
+
 
 	from . import geomap
 	app.register_blueprint(geomap.bp)
-	app.add_url_rule('/', endpoint='index')
+	# associates the endpoint name 'index' with the / url so that
+	# url_for('mapview') and url_for('geomap.mapview') point to the same url
+	app.add_url_rule('/', endpoint='mapview')
 
 	return app
 

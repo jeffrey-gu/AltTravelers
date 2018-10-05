@@ -111,7 +111,7 @@ def login():
                 # Flask signs the data to prevent tampering
                 # now user's id is available on subsequent requests
             session['user_id'] = user['id']
-            return redirect(url_for('index'))
+            return redirect(url_for('mapview'))
 
         flash(error)
 
