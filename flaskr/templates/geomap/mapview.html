@@ -3,105 +3,150 @@ but if invalid form data was posted, you want to display this so the user can fi
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}AltTravelers{% endblock %}</h1>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css"
-  integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
-  crossorigin=""/>
-  <link rel="stylesheet" href="../static/leaflet-search.css"/>
-  <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"
-  integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA=="
-  crossorigin=""></script>
-  <meta name="viewport" content="initial-scale=1.0">
-  <meta charset="utf-8">
+<h1>{% block title %}AltTravelers{% endblock %}</h1>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css"
+integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+crossorigin=""/>
+<link rel="stylesheet" href="../static/leaflet-search.css"/>
+<script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"
+integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA=="
+crossorigin=""></script>
+<meta name="viewport" content="initial-scale=1.0">
+<meta charset="utf-8">
 
-  <script type=text/javascript> $SCRIPT_ROOT = {{ request.script_root|tojson|safe }}; </script>
+<script type=text/javascript> $SCRIPT_ROOT = {{ request.script_root|tojson|safe }}; </script>
 {% endblock %}
 
 {% block content %}
-    <div id='mapid'></div>
-    <script src="../static/leaflet-search.js"></script>
-    <script src="../static/marker-actions.js"></script>
-    <script>
-        var mymap = L.map('mapid').setView([51.505, -0.09], 13);
-        // add a tile layer to the map (this one is from openstreetmap) by invoking a URL template with attribution
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(mymap);
+<div id='mapid'></div>
+<script src="../static/leaflet-search.js"></script>
+<script src="../static/marker-actions.js"></script>
+<script>
+//TODO: map should let user view all of their markers in one view
 
-        // add a marker to the map at specified long/lat
-        // bindPopup attaches a popup with specified HTML content (click)
-        // openPopup immediately opens popup
-        // L.marker([51.5, -0.09]).addTo(mymap)
-        //     .bindPopup('A pretty CSS3 popup.<br> Easily customizable.')
-        //     .openPopup();
+// Load in markers set in previous sessions passed in by flask
+// TODO: do I need this dictionary?
+var markerDict = {};
+var globalMarketId = 0;
 
-        // var circle = L.circle([51.508, -0.11], {
-        // color: 'red',
-        // fillColor: '#f03',
-        // fillOpacity: 0.5,
-        // radius: 500
-        // }).addTo(mymap).bindPopup('check out my new circle');
+// load in saved markers from past session
+var markerList = {{ savedMarkers|safe }}
+var markerListLength = markerList.length
+var markerListExtracted = []
+var markerListExtractedLatLng = []
+for (var i = 0; i<markerListLength; ++i) {
+    var lat = markerList[i].split(",")[0].split("[")[1]
+    var lng = markerList[i].split(",")[1].split("]")[0]
+    markerListExtracted.push([lat,lng])
+    markerListExtractedLatLng.push(L.latLng(lat,lng))
+    // createMarker(new L.latLng(lat, lng))
+}
 
-        var searchLayer = L.layerGroup().addTo(mymap);
-        mymap.addControl( new L.Control.Search({
-            url: 'http://nominatim.openstreetmap.org/search?format=json&q={s}',
-            jsonpParam: 'json_callback',
-            propertyName: 'display_name',
-            propertyLoc: ['lat','lon'],
-            marker: L.circleMarker([0,0],{radius:30}),
-            autoCollapse: true,
-            autoType: false,
-            minLength: 2
-        }) );
+var mymap = L.map('mapid').setView([51.505, -0.09], 13);
 
-        var markerDict = {};   // TODO: do I need this array now?
-        var globalMarketId = 0;
-        var markerGroup = L.layerGroup().addTo(mymap);    // add all markers of the same vacation to this group
+// TODO: can't figure out how to disable dblclick zoom even after setting prop value
+mymap.doubleClickZoom = false;
+// console.log(mymap.doubleClickZoom);
 
-        // load in saved markers from past session
-        // var savedMarkersListLength = {{ savedMarkers|safe }}.length;
-        for (var marker in {{ savedMarkers }}) {
-            console.log({{ savedMarkers['lat'] }});
-        }
-        // for (var i = 0; i<(savedMarkersListLength-1); i+=2) {
-        //     createMarker(L.latLng('{{ savedMarkers }}'[i], '{{ savedMarkers }}'[i+1]));
-        // }
+// add a tile layer to the map (this one is from openstreetmap) by invoking a URL template with attribution
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(mymap);
 
-        function createMarkerOnMapClick(e) {
-            // pass into general create marker function
-            createMarker(e.latlng)
-        }
+// TODO: create different marker groups for different trips
 
-        function createMarker(latlng) {
-            var markerAtLoc = new L.Marker(latlng, {draggable:true}).addTo(markerGroup);
+// 3.30.2019 use polyline to "connect the dots"
+var markerGroup = L.layerGroup().addTo(mymap);
+var polyline = L.polyline(markerListExtracted).addTo(mymap)
 
-            // TODO: check if latlng already exists
-            // TODO: hash the latlng key?
-            // TODO: save the marker into the db
-            sendMarkerCreateRequest(latlng.lat, latlng.lng) // send post request
-            markerAtLoc
-                .bindPopup("<b>Marker set at:<br>"+latlng+"<br><input type='button'value='Delete this marker' class='marker-delete-button'/>")
-                .on("popupopen", deleteMarkerOnPopUpButtonPress);
-            markerDict[latlng]=updateMarkerCount()
-            console.log(Object.values(markerDict));
-        }
+// 3.30.2019 neat function for readjusting map view so you can see all points
+mymap.fitBounds(markerListExtractedLatLng)
 
-        function updateMarkerCount() {
-            ++globalMarketId;
-            return globalMarketId;
-        }
+// add a marker to the map at specified long/lat
+// bindPopup attaches a popup with specified HTML content (click)
+// openPopup immediately opens popup
+// L.marker([51.5, -0.09]).addTo(mymap)
+//     .bindPopup('A pretty CSS3 popup.<br> Easily customizable.')
+//     .openPopup();
 
-        function deleteMarkerOnPopUpButtonPress() {
-            var marker = this;
-            var latlng = marker.getLatLng();
-            console.log("delete this laglng: " + latlng);
-            $(".marker-delete-button:visible").click(function() {
-                sendMarkerCreateRequest(latlng.lat, latlng.lng) // send post request
-                markerGroup.removeLayer(marker);    // remove marker from UI
-                delete markerDict[latlng];
-                console.log(Object.values(markerDict));
-            });
-        }
-        mymap.on('click', createMarkerOnMapClick);
-    </script>
+// var circle = L.circle([51.508, -0.11], {
+// color: 'red',
+// fillColor: '#f03',
+// fillOpacity: 0.5,
+// radius: 500
+// }).addTo(mymap).bindPopup('check out my new circle');
+
+// 3.30.2019 add markers to UI
+for (var i = 0; i<markerListLength; ++i) {
+    lat = markerListExtracted[i][0]
+    lng = markerListExtracted[i][1]
+    createMarker(new L.latLng(lat, lng),true)
+}
+
+var searchLayer = L.layerGroup().addTo(mymap);
+// use Nominatim search engine to find places on open street map
+mymap.addControl( new L.Control.Search({
+    url: 'http://nominatim.openstreetmap.org/search?format=json&q={s}',
+    jsonpParam: 'json_callback',
+    propertyName: 'display_name',
+    propertyLoc: ['lat','lon'],
+    marker: L.circleMarker([0,0],{radius:30}),
+    autoCollapse: true,
+    autoType: false,
+    minLength: 2
+}) );
+
+// TODO 3.30.2019 on key press, check which char was pressed and handle accordingly
+function handleKeypressEvent(e) {
+    // pass into general create marker function
+    var pressedKey = e.char
+    createMarker(e.latlng,true)
+}
+
+function createMarkerOnMapClick(e) {
+    // pass into general create marker function
+    createMarker(e.latlng)
+}
+
+function createMarker(latlng, isUIChangeOnly=false) {
+    var markerAtLoc = new L.Marker(latlng, {draggable:true}).addTo(markerGroup);
+    markerAtLoc
+    .bindPopup("<b>Marker set at:<br>"+latlng
+    +"<br><input type='button'value='Delete this marker' class='marker-delete-button'/>"
+    +"<br><input type='button'value='Add content to this pin' class='marker-add-content-button'/>"
+)
+.on("popupopen", markerPopUpButtonManager);
+markerDict[latlng]=updateMarkerCount()
+
+// TODO: check if a similar latlng exists
+// TODO: hash the latlng key?
+// 3.30.2019 adding this prevents duplication of markers each load
+if(!isUIChangeOnly) (
+    sendMarkerCreateRequest(latlng.lat, latlng.lng) // send post request to save to db
+)
+// console.log(Object.values(markerDict));
+}
+
+function updateMarkerCount() {
+    ++globalMarketId;
+    return globalMarketId;
+}
+function markerPopUpButtonManager() {
+    var marker = this
+    var latlng = marker.getLatLng();
+    console.log("delete this laglng: " + latlng);
+    $(".marker-delete-button:visible").click(function() {
+        sendMarkerDeleteRequest(latlng.lat, latlng.lng) // send post request
+        markerGroup.removeLayer(marker);    // remove marker from UI
+        delete markerDict[latlng];
+        // TODO redraw polyline(s) after deleting marker
+        // console.log(Object.values(markerDict));
+    });
+    $(".marker-add-content-button:visible").click(function() {
+        // TODO create popup modal for uploading media
+    });
+}
+mymap.on('dblclick', createMarkerOnMapClick);
+// mymap.on('keypress', handleKeypressEvent);
+</script>
 {% endblock %}

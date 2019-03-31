@@ -80,7 +80,7 @@ def email_confirmation():
 
         if error is None:
             # send email again to the specified address
-            print("all is good")
+            print("/auth/register SUCCESS")
         flash(error)
     return render_template('auth/email_confirmation.html', email=email)
 

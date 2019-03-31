@@ -1,9 +1,11 @@
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for
+    Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify
 )
 from werkzeug.exceptions import abort
 from flaskr.auth import login_required
 from flaskr.db import get_db
+
+import json
 
 bp = Blueprint('geomap', __name__)
 # , url_prefix='/geomap')
@@ -12,10 +14,21 @@ bp = Blueprint('geomap', __name__)
 @login_required
 def mapview():
     # user_id = checkSessionUserId()
-    markers = get_db().execute(
+    savedMarkers = []
+    markerData = get_db().execute(
         'SELECT lat, lng FROM marker WHERE author_id = ?', (str(g.user['id']),)
     ).fetchall()
-    return render_template('geomap/mapview.html', savedMarkers = markers)
+    # print(type(markers))
+    # for marker in markers:
+    #     print(type(marker))
+    #     print(type(marker[0]))
+    for marker in markerData:
+        savedMarkers.append(list(marker)) # convert each sqlite3.row instance into a list
+
+    print("You have "+str(len(savedMarkers))+" saved markers")
+    return render_template('geomap/mapview.html', savedMarkers = map(json.dumps, savedMarkers))  # serialize each element of the list
+    # return render_template('geomap/mapview.html', savedMarkers = jsonify(savedMarkers))
+    # return render_template('geomap/mapview.html', savedMarkers = savedMarkers)
 
 # background process
 @bp.route('/delete_marker_request', methods=('GET','POST'))
